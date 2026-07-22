@@ -91,6 +91,27 @@ function getAllFiles(dir, allFilesList = []) {
   }
   return allFilesList;
 }
+// Find the full path of a file inside a directory or its subdirectories
+function findFilePath(dir, targetFile) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      const foundPath = findFilePath(fullPath, targetFile);
+
+      if (foundPath) {
+        return foundPath;
+      }
+    } else if (entry.name === targetFile) {
+      return fullPath;
+    }
+  }
+
+  return null;
+}
+
 
 // ------------------------------------------------------------------------------
 // Get list of all finished examples
@@ -349,7 +370,13 @@ function getUsageExampleContent(jsonData, categoryKey, groupName, functionKey) {
         // Description
         let exampleNum = exampleKey.replace(/\D/g, '');
         mdxData += `**Example ${exampleNum}**: `;
-        let exampleTxt = fs.readFileSync(categoryFilePath + "/" + exampleTxtKey);
+        const exampleTxtPath = findFilePath(categoryFilePath, exampleTxtKey);
+
+        if (!exampleTxtPath) {
+          throw new Error(`Unable to locate usage example file: ${exampleTxtKey}`);
+        }
+
+        let exampleTxt = fs.readFileSync(exampleTxtPath);
         mdxData += exampleTxt.toString();
         mdxData += "\n\n";
 
